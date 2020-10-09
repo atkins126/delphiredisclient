@@ -64,6 +64,7 @@ type
     procedure TestCommandParser;
     procedure TestExecuteWithStringArrayResponse;
     procedure TestSetGet;
+    procedure TestIssue_18;
     procedure TestSetGetUnicode;
     procedure TestAPPEND;
     procedure TestKEYS;
@@ -760,6 +761,18 @@ begin
   CheckEquals(-1, FRedis.DECR('daniele'));
 end;
 
+procedure TestRedisClient.TestIssue_18;
+var
+  lKey: string;
+  lv: Int64;
+begin
+  lKey := 'userdb1';
+  FRedis.&SET(lKey, '10000010004');
+  lv := FRedis.INCR(lKey);
+  CheckEquals(10000010005, lv)
+  // WriteLn('lv = ', lv); //lv result is not 10000010005
+end;
+
 procedure TestRedisClient.TestKEYS;
 var
   lRes: TRedisArray;
@@ -1454,6 +1467,9 @@ begin
   CheckTrue(contains('first', lRes.Value));
   CheckTrue(contains('second', lRes.Value));
   CheckTrue(contains('third', lRes.Value));
+
+  CheckTrue(FRedis.SISMEMBER('set1', 'first') = 1);
+  CheckTrue(FRedis.SISMEMBER('set1', 'third') = 0);
 
   // check with empty sets
   FRedis.DEL(['set1', 'set2']);
