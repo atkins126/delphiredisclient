@@ -74,6 +74,7 @@ type
     procedure TestMSET;
     procedure TestINCR_DECR;
     procedure TestEXPIRE;
+    procedure TestRENAME;
     procedure TestDelete;
     procedure TestRPUSH_RPOP;
     procedure TestRPUSHX_LPUSHX;
@@ -92,6 +93,12 @@ type
     procedure TestHSetHGet;
     procedure TestHMSetHMGet;
     procedure TestHMGetBUGWithEmptyValues;
+    procedure TestHKEYS;
+    procedure TestHVALS;
+    procedure TestHEXISTS;
+    procedure TestHLEN;
+    procedure TestHINCRBY;
+    procedure TestHINCRBYFLOAT;
     procedure TestAUTH;
     procedure TestRANDOMKEY;
     procedure TestMOVE;
@@ -669,6 +676,72 @@ begin
   CheckEquals('abc', lResp);
 end;
 
+procedure TestRedisClient.TestHEXISTS;
+begin
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','exists','myvalue');
+  CheckTrue(FRedis.HEXISTS('Hmykey', 'exists'));
+  CheckFalse(FRedis.HEXISTS('Hmykey', 'exists_false'));
+end;
+
+procedure TestRedisClient.TestHINCRBY;
+var
+  LResult: string;
+begin
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','inc','0');
+  FRedis.HINCRBY('Hmykey', 'inc', 10);
+  FRedis.HGET('Hmykey', 'inc', LResult);
+  CheckEquals('10', LResult);
+end;
+
+procedure TestRedisClient.TestHINCRBYFLOAT;
+var
+  LResult: string;
+  LFormatSettings: TFormatSettings;
+begin
+  LFormatSettings.DecimalSeparator := '.';
+
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','incFloat','0');
+  FRedis.HINCRBYFLOAT('Hmykey', 'incFloat', 10.5);
+  LResult := FRedis.HGET('Hmykey', 'incFloat').Value;
+  CheckEquals(10.5, StrToFloat(LResult, LFormatSettings));
+end;
+
+procedure TestRedisClient.TestHKEYS;
+begin
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','field1','1');
+  FRedis.HSET('Hmykey','field2','2');
+
+  FArrResNullable := FRedis.HKEYS('Hmykey');
+  CheckEquals(2, Length(FArrResNullable.Value));
+  CheckEquals('field1', FArrResNullable.Value[0]);
+  CheckEquals('field2', FArrResNullable.Value[1]);
+end;
+
+procedure TestRedisClient.TestHLEN;
+begin
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','field1','1');
+  FRedis.HSET('Hmykey','field2','2');
+
+  CheckEquals(2, FRedis.HLEN('Hmykey'));
+end;
+
+procedure TestRedisClient.TestHVALS;
+begin
+  FRedis.DEL(['Hmykey']);
+  FRedis.HSET('Hmykey','field1','1');
+  FRedis.HSET('Hmykey','field2','2');
+
+  FArrResNullable := FRedis.HVALS('Hmykey');
+  CheckEquals(2, Length(FArrResNullable.Value));
+  CheckEquals('1', FArrResNullable.Value[0]);
+  CheckEquals('2', FArrResNullable.Value[1]);
+end;
+
 procedure TestRedisClient.TestHMGetBUGWithEmptyValues;
 var
   Values: TRedisArray;
@@ -955,6 +1028,16 @@ begin
   lRes := FRedis.RANDOMKEY;
   CheckFalse(lRes.IsNull);
   CheckEquals('mykey', lRes.Value);
+end;
+
+procedure TestRedisClient.TestRENAME;
+var
+  lRes: TRedisString;
+begin
+  FRedis.&SET('myrename', '1234');
+  FRedis.RENAME('myrename', 'myrename2');
+  lRes := FRedis.GET('myrename2');
+  CheckEquals('1234', lRes);
 end;
 
 procedure TestRedisClient.TestRPOPLPUSH;
